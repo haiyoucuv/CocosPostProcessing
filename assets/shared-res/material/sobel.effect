@@ -17,6 +17,7 @@ CCEffect %{
           blendSrc: one
           blendDst: zero
       properties:
+        intensity: { value: 1, target: params.x }
 
 }%
 
@@ -27,7 +28,6 @@ CCProgram vs %{
     
   #include <legacy/decode-standard>
   #include <builtin/uniforms/cc-global>
-  #include <common/common-define>
 
   out vec2 v_uv;
 
@@ -55,8 +55,6 @@ CCProgram fs %{
     precision highp float;
 
     #include <builtin/uniforms/cc-global>
-    #include <legacy/output-standard>
-    #include <unpack>
 
     in vec2 v_uv;
     #include <ubo>
@@ -99,12 +97,12 @@ CCProgram fs %{
         Gy[0][2] * tx0y2 + Gy[1][2] * tx1y2 + Gy[2][2] * tx2y2;
 
         // magnitute of the total gradient
-
         float G = sqrt( ( valueGx * valueGx ) + ( valueGy * valueGy ) );
 
-        fragColor = vec4( vec3( G ), 1 );
+        vec4 source = texture( inputTexture, v_uv );
+        fragColor = mix(source, vec4( vec3( G ), 1 ), params.x);
 
     }
-  
+
 }%
 

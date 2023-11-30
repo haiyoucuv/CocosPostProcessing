@@ -1,23 +1,17 @@
-import {_decorator, Component, Node, rendering, Material, renderer, Vec4, gfx, input, postProcess} from 'cc';
+import { _decorator, gfx, Material, postProcess, renderer, rendering, Vec4, CCFloat } from 'cc';
 
 const {ccclass, property, menu} = _decorator;
 
 const {SettingPass, PostProcessSetting, BlitScreenPass, ForwardPass,} = postProcess
 
-@ccclass('CustomPostProcess')
-@menu('PostProcess/CustomPostProcess')
-export class CustomPostProcess extends PostProcessSetting {
-    @property
-    blueIntensity = 1
-
-    @property
-    showDepth = false
-
-    @property
-    depthRange = 30
+@ccclass('SobelPostProcess')
+@menu('PostProcess/Sobel')
+export class SobelPostProcess extends PostProcessSetting {
+    @property({type: CCFloat, range: [0, 1], slide: true, step: 0.01})
+    intensity = 1;
 
     @property(Material)
-    _material: Material | undefined
+    _material: Material | undefined;
 
     @property(Material)
     get material() {
@@ -30,13 +24,13 @@ export class CustomPostProcess extends PostProcessSetting {
 }
 
 
-export class CustomPass extends SettingPass {
+export class SobelPass extends SettingPass {
     name = 'CustomPass'
     outputNames: string[] = ['CustomPassColor']
     params = new Vec4
 
     get setting() {
-        return this.getSetting(CustomPostProcess);
+        return this.getSetting(SobelPostProcess);
     }
 
     // checkEnable(camera: renderer.scene.Camera): boolean {
@@ -57,28 +51,30 @@ export class CustomPass extends SettingPass {
         let forwardPass = builder.getPass(ForwardPass);
         let depth = forwardPass.slotName(camera, 1);
 
-        this.params.x = setting.blueIntensity
-        this.params.y = setting.showDepth ? 1 : 0;
-        this.params.z = setting.depthRange;
-        setting.material.setProperty('params', this.params);
+        this.params.x = setting.intensity;
 
-        // if (setting.showDepth) {
-        //     input0 = depth;
-        // }
+        if (setting.material) {
+            setting.material.setProperty('params', this.params);
 
-        context.material = setting.material;
-        context
-            .updatePassViewPort()
-            .addRenderPass('post-process', `${this.name}${cameraID}`)
-            .setPassInput(input0, 'inputTexture')
-            .setPassInput(depth, 'depthTexture')
-            .addRasterView(output, gfx.Format.RGBA8)
-            .blitScreen(0)
-            .version();
+            // if (setting.showDepth) {
+            //     input0 = depth;
+            // }
+
+            context.material = setting.material;
+            context
+                .updatePassViewPort()
+                .addRenderPass('post-process', `${this.name}${cameraID}`)
+                .setPassInput(input0, 'inputTexture')
+                .setPassInput(depth, 'depthTexture')
+                .addRasterView(output, gfx.Format.RGBA8)
+                .blitScreen(0)
+                .version();
+        }
+
     }
 }
 
 let builder = rendering.getCustomPipeline('Custom') as postProcess.PostProcessBuilder;
 if (builder) {
-    builder.insertPass(new CustomPass, BlitScreenPass);
+    builder.insertPass(new SobelPass, BlitScreenPass);
 }
